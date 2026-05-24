@@ -365,13 +365,11 @@ function BulkProgressView({ jobId, onFinish }) {
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 export default function SendEmail() {
-  const [activeTab, setActiveTab]     = useState('single') // 'single' | 'bulk'
   const [clients, setClients]         = useState([])
   const [selected, setSelected]       = useState(null)          // for single send
-  const [selectedIds, setSelectedIds] = useState([])            // for bulk send
   const [form, setForm]               = useState(BLANK)
   const [sending, setSending]         = useState(false)
-  const [result, setResult]           = useState(null)          // null | 'success' | 'error' | { bulkJobId }
+  const [result, setResult]           = useState(null)          // null | 'success' | 'error'
   const [errMsg, setErrMsg]           = useState('')
   const [preview, setPreview]         = useState(false)
   const [showAdvanced, setShowAdvanced] = useState(false)
@@ -392,43 +390,22 @@ export default function SendEmail() {
   const handleSend = async (e) => {
     e.preventDefault()
     
-    if (activeTab === 'single') {
-      if (!selected) { setErrMsg('Please select a client.'); return }
-      if (!form.companyName || !form.quantity) {
-        setErrMsg('Company name and quantity are required.'); return
-      }
-      setErrMsg('')
-      setSending(true)
-      try {
-        await apiPost('/email/send', { clientId: selected.id, formData: form })
-        setResult('success')
-        setForm(BLANK)
-        setSelected(null)
-      } catch (e) {
-        setResult('error')
-        setErrMsg(e.message || 'Failed to send email.')
-      } finally {
-        setSending(false)
-      }
-    } else {
-      // Bulk dispatch
-      if (selectedIds.length === 0) { setErrMsg('Please select at least one client.'); return }
-      if (!form.companyName || !form.quantity) {
-        setErrMsg('Company name and quantity are required.'); return
-      }
-      setErrMsg('')
-      setSending(true)
-      try {
-        const res = await apiPost('/email/send-bulk', { clientIds: selectedIds, formData: form })
-        setResult({ bulkJobId: res.jobId })
-        setForm(BLANK)
-        setSelectedIds([])
-      } catch (e) {
-        setResult('error')
-        setErrMsg(e.message || 'Failed to initiate bulk email send.')
-      } finally {
-        setSending(false)
-      }
+    if (!selected) { setErrMsg('Please select a client.'); return }
+    if (!form.companyName || !form.quantity) {
+      setErrMsg('Company name and quantity are required.'); return
+    }
+    setErrMsg('')
+    setSending(true)
+    try {
+      await apiPost('/email/send', { clientId: selected.id, formData: form })
+      setResult('success')
+      setForm(BLANK)
+      setSelected(null)
+    } catch (e) {
+      setResult('error')
+      setErrMsg(e.message || 'Failed to send email.')
+    } finally {
+      setSending(false)
     }
   }
 
@@ -455,65 +432,18 @@ export default function SendEmail() {
     )
   }
 
-  // ── Bulk Job progress view ───────────────────────────────────────────────────
-  if (result && typeof result === 'object' && result.bulkJobId) {
-    return (
-      <BulkProgressView
-        jobId={result.bulkJobId}
-        onFinish={() => setResult(null)}
-      />
-    )
-  }
-
   const isBuy = form.transactionType === 'buy'
-
-  // Pick the preview client (single selected client or first of selected bulk clients)
-  const previewClientId = activeTab === 'single'
-    ? selected?.id
-    : selectedIds[0]
+  const previewClientId = selected?.id
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       
-      {/* Tabs */}
-      <div className="flex p-1 bg-slate-950 border border-slate-800/80 rounded-xl max-w-sm mx-auto">
-        <button
-          type="button"
-          onClick={() => { setActiveTab('single'); setErrMsg(''); }}
-          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-bold transition-all
-            ${activeTab === 'single' ? 'bg-amber-500 text-navy-900 shadow-md' : 'text-slate-400 hover:text-slate-200'}`}
-        >
-          <User size={14} />
-          <span>Single Send</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => { setActiveTab('bulk'); setErrMsg(''); }}
-          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-bold transition-all
-            ${activeTab === 'bulk' ? 'bg-amber-500 text-navy-900 shadow-md' : 'text-slate-400 hover:text-slate-200'}`}
-        >
-          <Layers size={14} />
-          <span>Bulk Send</span>
-        </button>
-      </div>
-
       <div>
         <h2 className="text-xl font-bold text-white flex items-center gap-2" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-          {activeTab === 'single' ? (
-            <>Send Transaction Request</>
-          ) : (
-            <>
-              Bulk Transaction Request
-              <span className="badge badge-warning flex items-center gap-1 text-[10px] uppercase font-bold py-0.5 px-2">
-                <Sparkles size={8} /> Staggered
-              </span>
-            </>
-          )}
+          Send Transaction Request
         </h2>
         <p className="text-sm text-slate-500 mt-0.5">
-          {activeTab === 'single'
-            ? "Dispatch a share transaction request from a client's whitelisted identity."
-            : "Queue transaction requests across multiple whitelisted clients sequentially."}
+          Dispatch a share transaction request from a client's whitelisted identity.
         </p>
       </div>
 
@@ -522,38 +452,16 @@ export default function SendEmail() {
         {/* Identity selection */}
         <div className="rounded-2xl p-5"
           style={{ background: 'var(--bg-card)', border: '1px solid var(--border-subtle)' }}>
-          {activeTab === 'single' ? (
-            <>
-              <label className="block text-xs font-semibold text-slate-400 mb-3 uppercase tracking-wider">
-                Send From Client <span className="text-red-500">*</span>
-              </label>
-              <ClientSelector clients={clients} selected={selected} onSelect={setSelected} />
-              {selected && (
-                <div className="mt-3 flex items-center gap-2 text-xs text-slate-500 animate-slide-up">
-                  <span className="badge badge-success">● Active</span>
-                  <span>·</span>
-                  <span>Will send from <span className="text-slate-300">{selected.email}</span> via SMTP</span>
-                </div>
-              )}
-            </>
-          ) : (
-            <>
-              <label className="block text-xs font-semibold text-slate-400 mb-3 uppercase tracking-wider">
-                Select Senders (Active Clients) <span className="text-red-500">*</span>
-              </label>
-              <BulkClientSelector
-                clients={clients}
-                selectedIds={selectedIds}
-                onChange={setSelectedIds}
-              />
-              {selectedIds.length > 0 && (
-                <div className="mt-3 flex items-center gap-2 text-xs text-slate-500 animate-slide-up">
-                  <span className="badge badge-warning">● {selectedIds.length} Queued</span>
-                  <span>·</span>
-                  <span>Emails will be sent in sequence with a 1.5s delay between each client.</span>
-                </div>
-              )}
-            </>
+          <label className="block text-xs font-semibold text-slate-400 mb-3 uppercase tracking-wider">
+            Send From Client <span className="text-red-500">*</span>
+          </label>
+          <ClientSelector clients={clients} selected={selected} onSelect={setSelected} />
+          {selected && (
+            <div className="mt-3 flex items-center gap-2 text-xs text-slate-500 animate-slide-up">
+              <span className="badge badge-success">● Active</span>
+              <span>·</span>
+              <span>Will send from <span className="text-slate-300">{selected.email}</span> via SMTP</span>
+            </div>
           )}
         </div>
 
@@ -847,12 +755,12 @@ export default function SendEmail() {
             {sending ? (
               <>
                 <Loader2 size={15} className="animate-spin" />
-                <span>Queuing…</span>
+                <span>Sending…</span>
               </>
             ) : (
               <>
                 <Send size={15} strokeWidth={2.2} />
-                <span>{activeTab === 'single' ? 'Send Request' : 'Send Bulk Request'}</span>
+                <span>Send Request</span>
               </>
             )}
           </button>

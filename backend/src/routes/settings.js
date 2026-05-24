@@ -50,7 +50,7 @@ router.get('/', async (req, res) => {
     })
   } catch (err) {
     console.error('GET /settings:', err)
-    res.status(500).json({ error: 'Failed to fetch settings' })
+    res.status(500).json({ error: 'Failed to fetch settings', message: err.message })
   }
 })
 
@@ -76,7 +76,7 @@ router.put('/', async (req, res) => {
     res.json({ ...update, updatedAt: new Date().toISOString() })
   } catch (err) {
     console.error('PUT /settings:', err)
-    res.status(500).json({ error: 'Failed to save settings' })
+    res.status(500).json({ error: 'Failed to save settings', message: err.message })
   }
 })
 

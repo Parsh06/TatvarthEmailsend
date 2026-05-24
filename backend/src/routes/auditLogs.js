@@ -35,7 +35,7 @@ router.get('/', async (req, res) => {
     res.json(logs)
   } catch (err) {
     console.error('GET /api/audit-logs error:', err)
-    res.status(500).json({ error: 'Failed to fetch audit logs' })
+    res.status(500).json({ error: 'Failed to fetch audit logs', message: err.message })
   }
 })
 
@@ -55,7 +55,7 @@ router.post('/', async (req, res) => {
     res.status(201).json({ success: true })
   } catch (err) {
     console.error('POST /api/audit-logs error:', err)
-    res.status(500).json({ error: 'Failed to record audit log' })
+    res.status(500).json({ error: 'Failed to record audit log', message: err.message })
   }
 })
 

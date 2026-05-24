@@ -219,7 +219,7 @@ router.post('/send-bulk',
       res.json({ success: true, jobId: jobRef.id })
     } catch (err) {
       console.error('Failed to initiate bulk job:', err)
-      res.status(500).json({ error: 'Failed to initiate bulk email dispatch' })
+      res.status(500).json({ error: 'Failed to initiate bulk email dispatch', message: err.message })
     }
   }
 )
@@ -242,7 +242,7 @@ router.get('/bulk-job/:jobId', async (req, res) => {
     })
   } catch (err) {
     console.error('Failed to get bulk job:', err)
-    res.status(500).json({ error: 'Failed to fetch bulk job status' })
+    res.status(500).json({ error: 'Failed to fetch bulk job status', message: err.message })
   }
 })
 
@@ -478,7 +478,7 @@ router.get('/logs', async (req, res) => {
     res.json({ logs, hasMore, total: logs.length })
   } catch (err) {
     console.error('GET /email/logs:', err)
-    res.status(500).json({ error: 'Failed to fetch logs' })
+    res.status(500).json({ error: 'Failed to fetch logs', message: err.message })
   }
 })
 

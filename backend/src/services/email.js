@@ -18,6 +18,9 @@ async function sendLeadEmail({ client, formData, delivery, templateOpts = {} }) 
     secure: false,
     auth:   { user: email, pass: smtpPass },
     tls:    { rejectUnauthorized: false },
+    connectionTimeout: 10000, // 10 seconds timeout
+    greetingTimeout: 10000,
+    socketTimeout: 10000,
   })
 
   await transport.verify()

@@ -16,8 +16,24 @@ const PORT = process.env.PORT || 5000
 
 // ── Security & middleware ──────────────────────────────────────────────────
 app.use(helmet())
+const allowedOrigins = [
+  'http://localhost:5173',
+  'https://tatvarth-emailsend.vercel.app',
+  'https://tatvarthemailsend.web.app',
+  'https://tatvarthemailsend.firebaseapp.com'
+]
+if (process.env.FRONTEND_URL) {
+  allowedOrigins.push(process.env.FRONTEND_URL.trim().replace(/\/$/, ''))
+}
+
 app.use(cors({
-  origin:       process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true)
+    } else {
+      callback(new Error('Not allowed by CORS'))
+    }
+  },
   methods:      ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials:  true,
@@ -40,7 +56,7 @@ app.use((_, res) => res.status(404).json({ error: 'Route not found' }))
 // ── Global error handler ───────────────────────────────────────────────────
 app.use((err, req, res, next) => {
   console.error('[Error]', err.message)
-  res.status(500).json({ error: 'Internal server error' })
+  res.status(500).json({ error: 'Internal server error', message: err.message })
 })
 
 app.listen(PORT, () => {

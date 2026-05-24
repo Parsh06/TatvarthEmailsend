@@ -23,7 +23,7 @@ router.get('/', async (req, res) => {
     res.json(clients)
   } catch (err) {
     console.error('GET /clients:', err)
-    res.status(500).json({ error: 'Failed to fetch clients' })
+    res.status(500).json({ error: 'Failed to fetch clients', message: err.message })
   }
 })
 
@@ -65,7 +65,7 @@ router.post(
       res.status(201).json({ id: ref.id, ...safe, hasPassword: true })
     } catch (err) {
       console.error('POST /clients:', err)
-      res.status(500).json({ error: 'Failed to create client' })
+      res.status(500).json({ error: 'Failed to create client', message: err.message })
     }
   }
 )
@@ -124,7 +124,7 @@ router.put('/:id', async (req, res) => {
     res.json({ id, ...safe, hasPassword: true })
   } catch (err) {
     console.error('PUT /clients/:id:', err)
-    res.status(500).json({ error: 'Failed to update client' })
+    res.status(500).json({ error: 'Failed to update client', message: err.message })
   }
 })
 
@@ -152,7 +152,7 @@ router.delete('/:id', async (req, res) => {
     res.json({ success: true })
   } catch (err) {
     console.error('DELETE /clients/:id:', err)
-    res.status(500).json({ error: 'Failed to delete client' })
+    res.status(500).json({ error: 'Failed to delete client', message: err.message })
   }
 })
 
