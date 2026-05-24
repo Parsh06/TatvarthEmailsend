@@ -1,0 +1,100 @@
+rules_version = '2';
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Tatvarth Capital — Firestore Security Rules
+//
+//  Architecture note:
+//    All WRITE operations (clients, email_logs) go through the Express backend
+//    which uses Firebase Admin SDK — Admin SDK bypasses these rules entirely.
+//    These rules protect against any direct client-side access.
+//
+//  Copy this file content and paste it into:
+//    Firebase Console → Firestore Database → Rules → Edit rules → Publish
+// ─────────────────────────────────────────────────────────────────────────────
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helper: is the requester a signed-in Firebase Auth user? ─────────────
+    function isAuth() {
+      return request.auth != null && request.auth.uid != null;
+    }
+
+    // ── clients ──────────────────────────────────────────────────────────────
+    //  • Reads  : allowed for authenticated brokers (used by global search)
+    //  • Writes : BLOCKED — all writes go via backend which encrypts the
+    //             SMTP password with AES-256 before storing
+    match /clients/{clientId} {
+      allow read  : if isAuth();
+      allow write : if false;
+    }
+
+    // ── email_logs ────────────────────────────────────────────────────────────
+    //  • Reads  : allowed for authenticated brokers
+    //  • Writes : BLOCKED — written exclusively by backend after SMTP dispatch
+    match /email_logs/{logId} {
+      allow read  : if isAuth();
+      allow write : if false;
+    }
+
+    // ── notifications ─────────────────────────────────────────────────────────
+    //  • Reads  : allowed for authenticated brokers (real-time bell listener)
+    //  • Create / Delete : BLOCKED — only backend creates, no deletion needed
+    //  • Update : ONLY the `read` and `readAt` fields may be toggled
+    //             (frontend marks notifications as read)
+    match /notifications/{notifId} {
+      allow read   : if isAuth();
+      allow create : if false;
+      allow delete : if false;
+      allow update : if isAuth()
+        && request.resource.data.diff(resource.data)
+               .affectedKeys()
+               .hasOnly(['read', 'readAt']);
+    }
+
+    // ── settings ──────────────────────────────────────────────────────────────
+    //  • Reads  : allowed for authenticated brokers (frontend loads defaults)
+    //  • Writes : allowed for authenticated brokers (broker configures portal)
+    //             Backend also writes via Admin SDK (bypasses these rules)
+    match /settings/{docId} {
+      allow read  : if isAuth();
+      allow write : if isAuth();
+    }
+
+    // ── access_control ────────────────────────────────────────────────────────
+    //  • Reads  : allowed for authenticated brokers
+    //  • Writes : allowed for authenticated brokers if they are korojitha@gmail.com
+    //             or currently whitelisted, AND the new whitelist contains korojitha@gmail.com.
+    match /access_control/{docId} {
+      allow read  : if isAuth();
+      allow write : if isAuth() && (
+        request.auth.token.email == 'korojitha@gmail.com' ||
+        (exists(/databases/$(database)/documents/access_control/whitelist) &&
+         request.auth.token.email in get(/databases/$(database)/documents/access_control/whitelist).data.emails)
+      ) && (
+        'korojitha@gmail.com' in request.resource.data.emails
+      );
+    }
+
+    // ── audit_logs ────────────────────────────────────────────────────────────
+    //  • Reads  : allowed for authenticated brokers
+    //  • Writes : BLOCKED — strictly written by Firebase Admin SDK
+    match /audit_logs/{logId} {
+      allow read  : if isAuth();
+      allow write : if false;
+    }
+
+    // ── bulk_jobs ─────────────────────────────────────────────────────────────
+    //  • Reads  : allowed for authenticated brokers
+    //  • Writes : BLOCKED — strictly updated by backend
+    match /bulk_jobs/{jobId} {
+      allow read  : if isAuth();
+      allow write : if false;
+    }
+
+    // ── Catch-all: deny everything not explicitly listed ──────────────────────
+    match /{document=**} {
+      allow read, write : if false;
+    }
+  }
+}

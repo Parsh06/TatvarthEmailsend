@@ -1,0 +1,32 @@
+# Dependencies
+node_modules/
+backend/node_modules/
+frontend/node_modules/
+
+# Production build output
+dist/
+frontend/dist/
+
+# Environment files and secrets
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+backend/.env
+frontend/.env
+frontend/.env.local
+
+# Firebase
+.firebase/
+
+# System and IDE files
+.DS_Store
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.log
